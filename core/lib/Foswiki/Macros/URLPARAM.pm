@@ -19,6 +19,7 @@ sub URLPARAM {
     my $multiple  = $params->{multiple};
     my $separator = $params->{separator};
     my $default   = $params->{default};
+    my $validate  = $params->{validate};
 
     $separator = "\n" unless ( defined $separator );
 
@@ -43,7 +44,8 @@ sub URLPARAM {
                 $value = join(
                     $separator,
                     map {
-                        _handleURLPARAMValue( $_, $newLine, $encode, $default )
+                        _handleURLPARAMValue( $_, $newLine, $encode, $default,
+                            $validate )
                     } @valueArray
                 );
             }
@@ -55,14 +57,18 @@ sub URLPARAM {
         else {
             $value = $this->{request}->param($param);
             $value =
-              _handleURLPARAMValue( $value, $newLine, $encode, $default );
+              _handleURLPARAMValue( $value, $newLine, $encode, $default,
+                $validate );
         }
     }
     return $value;
 }
 
 sub _handleURLPARAMValue {
-    my ( $value, $newLine, $encode, $default ) = @_;
+    my ( $value, $newLine, $encode, $default, $validate ) = @_;
+
+    $value = _validateValue( $value, $validate )
+      if ( defined $value && defined $validate );
 
     if ( defined $value ) {
         $value =~ s/\r?\n/$newLine/g if ( defined $newLine );
@@ -97,11 +103,118 @@ sub _handleURLPARAMValue {
     return $value;
 }
 
+sub _validateValue {
+    my ( $value, $validate ) = @_;
+
+    my ( $method, $validation ) = split( ':', $validate, 2 );
+    $value = _validateHandler( $method, $validation, $value );
+
+    return $value;
+}
+
+sub _validateHandler {
+    my ( $method, $validation, $value ) = @_;
+
+    eval 'use Foswiki::ValidationHandler::' . $method . ' ()';
+    if ($@) {
+        return "MISSING validation method: $method";
+    }
+    else {
+        my $handler   = 'Foswiki::ValidationHandler::' . $method;
+        my %checkOpts = $handler->options();
+        print STDERR Data::Dumper::Dumper( \%checkOpts );
+        my %valOptions = _CHECK( $validation, %checkOpts )
+          if ( defined $validation );
+
+        return $handler->VALIDATE( $value, \%valOptions );
+    }
+}
+
+# This code is shamelessly borrowed from Configure::Value
+# Validation options are:
+# HANDLER:option option:value option:value,value option:'value', where
+#    * each option has a value (the default when just the keyword is
+#      present is 1)
+#    * options are separated by whitespace
+#    * values are introduced by : and delimited by , (Unless quoted,
+#      in which case there is just one value.  N.B. If quoted, double \.)
+#    * Generated an arrayref containing all values for
+#      each option
+# The %CHECK_options hash is provided by the particular checker.
+#
+
+sub _CHECK {
+    my ( $str, %CHECK_options ) = @_;
+
+    my %validated;
+
+    my $ostr = $str;
+    $str =~ s/^(["'])\s*(.*?)\s*\1$/$2/;
+
+    my %valOptions;
+    while ( $str =~ s/^\s*([a-zA-Z][a-zA-Z0-9]*)// ) {
+        my $name = $1;
+        my $set  = 1;
+        if ( $name =~ s/^no//i ) {
+            $set = 0;    # negated option
+        }
+        throw Foswiki::OopsException(
+            'params',
+            def    => 'CHECK_parse_unrecognized',
+            params => [ $name, $ostr ]
+        ) unless ( defined $CHECK_options{$name} );
+
+        my @opts;
+        if ( $str =~ s/^\s*:\s*// ) {
+            do {
+                if ( $str =~ s/^(["'])(.*?[^\\])\1// ) {
+                    push( @opts, $2 );
+                }
+                elsif ( $str =~ s/^([-+]?\d+)// ) {
+                    push( @opts, $1 );
+                }
+                elsif ( $str =~ s/^([a-z_{}]+)//i ) {
+                    push( @opts, $1 );
+                }
+                else {
+                    throw Foswiki::OopsException(
+                        'params',
+                        def    => 'CHECK_parse_notalist',
+                        params => [ $str, $ostr ]
+                    );
+                }
+            } while ( $str =~ s/^\s*,\s*// );
+        }
+        if ( $CHECK_options{$name} >= 0
+            && scalar(@opts) != $CHECK_options{$name} )
+        {
+            die
+"CHECK parse failed: wrong number of params to '$name' (expected $CHECK_options{$name}, saw @opts)";
+        }
+        if ( !$set && scalar(@opts) != 0 ) {
+            die "CHECK parse failed: 'no$name' is not allowed";
+        }
+        if ( scalar(@opts) == 0 ) {
+            $valOptions{$name} = $set;
+        }
+        else {
+            $valOptions{$name} = \@opts;
+        }
+    }
+    throw Foswiki::OopsException(
+        'params',
+        def    => 'CHECK_parse_expectname',
+        params => [ $str, $ostr ]
+    ) if $str !~ /^\s*$/;
+
+    return %valOptions;
+}
+
 1;
 __END__
 Foswiki - The Free and Open Source Wiki, http://foswiki.org/
 
-Copyright (C) 2008-2009 Foswiki Contributors. Foswiki Contributors
+Copyright (C) 2008-2015 Foswiki Contributors. Foswiki Contributors
 are listed in the AUTHORS file in the root of this distribution.
 NOTE: Please extend that file, not this notice.
 

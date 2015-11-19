@@ -1,0 +1,76 @@
+%{ This is a default template
+
+   SYSTEM MESSAGES related to URL parameter validation..
+}%
+%{==============================================================================}%
+%TMPL:DEF{"min_length_error"}%
+---+++ %MAKETEXT{"Minimum length not met."}%
+
+%MAKETEXT{"The data enterned for [_1] is too short. It must be at least [_2] characters." args="%PARAM1%, %PARAM2%"}%
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
+%TMPL:DEF{"max_length_error"}%
+---+++ %MAKETEXT{"Maximum length exceeded."}%
+
+%MAKETEXT{"The data enterned for [_1] is too long. It must not exceed [_2] characters."  args="%PARAM1%,%PARAM2%"}%
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
+%TMPL:DEF{"accept_rule_failed"}%
+---+++ %MAKETEXT{"Accept rule failed."}%
+
+%MAKETEXT{"The data enterned for [_1] does not match any of the following rules:"  args="%PARAM1%"}%
+<pre>
+%PARAM2%
+</pre>
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
+%TMPL:DEF{"filter_rule_failed"}%
+---+++ %MAKETEXT{"Filter rule failed."}%
+
+%MAKETEXT{"The data enterned for [_1] matched one or more of the following filtering rules:"  args="%PARAM1%"}%
+<pre>
+%PARAM2%
+</pre>
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
+%TMPL:DEF{"CHECK_parse_unrecognized"}%
+---+++ %MAKETEXT{"Parse of URLPARAM validation rule failed."}%
+
+%MAKETEXT{"The parameter [_1] was not recognized"  args="%PARAM1%"}%
+<pre>
+%PARAM2%
+</pre>
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
+%TMPL:DEF{"CHECK_parse_notalist"}%
+---+++ %MAKETEXT{"Parse of URLPARAM validation rule failed."}%
+
+%MAKETEXT{"The parameter at [_1] in [_2] must be a list."  args="%PARAM1%,%PARAM2%"}%
+<pre>
+%PARAM2%
+</pre>
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
+%TMPL:DEF{"CHECK_parse_expectname"}%
+---+++ %MAKETEXT{"Parse of URLPARAM validation rule failed."}%
+
+%MAKETEXT{"A parameter name was expected at <pre>[_1]</pre> in in the below string:"  args="%PARAM1%"}%
+<pre>
+%PARAM2%
+</pre>
+
+%MAKETEXT{"Hit the back-button in your browser to return to the previous screen."}%
+%TMPL:END%
+%{==============================================================================}%
